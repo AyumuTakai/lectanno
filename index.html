@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'"> -->
+    <title>Document</title>
+    <style>
+        html,body {
+            margin: 0;
+            padding: 0;
+        }
+        div {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <h1>Hello World</h1>
+    </div>
+    <script>
+        const h1 = document.querySelector("h1");
+        document.querySelector("div").addEventListener("wheel", (event) => {
+            h1.textContent = event.deltaY;
+            window.electronAPI.onWheel(event.deltaY)
+        }, { passive: false });
+        window.electronAPI.setTitle("Test")
+
+    </script>
+</body>
+
+</html>
