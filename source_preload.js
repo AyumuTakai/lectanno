@@ -5,8 +5,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		ipcRenderer.on("wheel", (_event, value) => callback(value)),
 });
 
-// let y = 0;
-
 function addLine(svg, x1, y1, x2, y2) {
 	const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
 	const stroke = "yellow";
@@ -23,10 +21,7 @@ function addLine(svg, x1, y1, x2, y2) {
 	return line;
 }
 
-window.addEventListener("load", () => {
-	let isDragging = false;
-	let currentFigure = null;
-
+function createContainer() {
 	const div = document.createElement("div");
 	div.style.position = "fixed";
 	div.style.height = "100vh";
@@ -38,14 +33,18 @@ window.addEventListener("load", () => {
 	div.style.overflow = "hidden";
 	div.addEventListener("wheel", (event) => {
 		const container = document.querySelector("#viewerContainer");
-		console.log({ event });
 		container.scrollBy(0, event.deltaY);
 		div.scrollBy(0, event.deltaY);
 	});
-	document.querySelector("body").appendChild(div);
+	return div;
+}
+
+function createSVG() {
+	let isDragging = false;
+	let currentFigure = null;
+	const figures = [];
 
 	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-
 	svg.addEventListener("mousedown", (event) => {
 		isDragging = true;
 		if (isDragging) {
@@ -56,6 +55,7 @@ window.addEventListener("load", () => {
 				event.offsetX,
 				event.offsetY,
 			);
+			figures.push(currentFigure);
 		} else {
 			currentFigure = null;
 		}
@@ -73,7 +73,6 @@ window.addEventListener("load", () => {
 			currentFigure.setAttribute("y2", event.offsetY);
 		}
 	});
-
 	const container = document.querySelector("#viewer");
 	const resizeObserver = new ResizeObserver((entries) => {
 		const w = entries[0].contentRect.width;
@@ -83,7 +82,13 @@ window.addEventListener("load", () => {
 		svg.setAttribute("height", h);
 	});
 	resizeObserver.observe(container);
-	svg.background = "blue";
 	// addLine(svg, 0, 0, 100, 100);
+	return svg;
+}
+
+window.addEventListener("load", () => {
+	const svg = createSVG();
+	const div = createContainer();
 	div.appendChild(svg);
+	document.querySelector("body").appendChild(div);
 });
