@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToolBar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        html,body {
+            background-color: gray;
+        }
+        #wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 32px;
+            height: 100svh;
+        }
+        button,input {
+            width: 32px;
+            height: 32px;
+            background-color: none;
+            border: none;
+        }
+        .spacer {
+            flex-grow: 1;
+            min-width:32px;
+            min-height: 32px;
+        }
+        .yellow {
+            background-color: yellow;
+        }
+        .red {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <div id="wrapper">
+        <button class="yellow" id="yellow" type="button">&nbsp;</button>
+        <button class="red" id="red" type="button">&nbsp;</button>
+        <input type="image" src="trash.svg" id="trash"></input>
+        <div class="spacer"></div>
+        <input type="image" src="cog.svg" id="devtool"></input>
+    </div>
+    <script src="toolbar.js"></script>
+    <script>
+        document.querySelector("#yellow").addEventListener('click',(e)=>{
+            e.preventDefault();
+            window.api.setColor('yellow');
+        });
+        document.querySelector("#red").addEventListener('click',(e)=>{
+            e.preventDefault();
+            window.api.setColor('red');
+        });
+        document.querySelector("#trash").addEventListener('click',(e)=>{
+            e.preventDefault();
+            window.api.clearAll();
+        })
+        document.querySelector("#devtool").addEventListener('click',(e)=>{
+            e.preventDefault();
+            window.api.toggleDevTool();
+        })
+    </script>
+</body>
+</html>
