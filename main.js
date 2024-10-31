@@ -10,6 +10,10 @@ const path = require("node:path");
 const createWindow = () => {
 	const w = 800;
 	const h = 600;
+	const toolbar_w = 32;
+
+	let isOverlay = true;
+
 	const win = new BaseWindow({
 		width: w,
 		height: h,
@@ -27,13 +31,12 @@ const createWindow = () => {
 		},
 	});
 
-	view1.setBounds({ x: 32, y: 0, width: w - 32, height: h });
+	view1.setBounds({ x: 32, y: 0, width: w - toolbar_w, height: h });
 	win.contentView.addChildView(view1);
-	// view1.webContents.loadURL("https://hackwork.jp");
-	view1.webContents.loadURL(
-		"https://www.recurrent.jp/instructor/pdf_view/5585__1726563225__0__text_pdf?type=customize",
-	);
-	// view1.webContents.openDevTools();
+	view1.webContents.loadURL("https://hackwork.jp");
+	// view1.webContents.loadURL(
+	// 	"https://www.recurrent.jp/instructor/pdf_view/5585__1726563225__0__text_pdf?type=customize",
+	// );
 
 	const view2 = new WebContentsView({
 		webPreferences: {
@@ -42,9 +45,25 @@ const createWindow = () => {
 	});
 	win.contentView.addChildView(view2);
 	view2.webContents.loadFile("toolbar.html");
-	// view2.setBackgroundColor("#0000");
-	// view2.webContents.backgroundThrottling;
-	view2.setBounds({ x: 0, y: 0, width: 32, height: win.getContentSize()[1] });
+	view2.setBounds({
+		x: 0,
+		y: 0,
+		width: toolbar_w,
+		height: win.getContentSize()[1],
+	});
+
+	const addressBar = new WebContentsView({
+		webPreferences: {
+			preload: path.join(__dirname, "addressbar_preload.js"),
+		},
+	});
+	addressBar.webContents.loadFile("addressbar.html");
+	addressBar.setBounds({
+		x: toolbar_w,
+		y: 0,
+		width: w - toolbar_w,
+		height: 32,
+	});
 
 	// win.loadFile('index.html')
 
@@ -60,6 +79,27 @@ const createWindow = () => {
 		console.log("clearAll");
 		view1.webContents.send("clearAll");
 	});
+	ipcMain.on("toggleOverlay", (_event) => {
+		isOverlay = !isOverlay;
+		console.log("toggleOverlay");
+		if (isOverlay) {
+			view1.setBounds({
+				x: 32,
+				y: 0,
+				width: w - toolbar_w,
+				height: h,
+			});
+			win.contentView.removeChildView(addressBar);
+		} else {
+			view1.setBounds({
+				x: 32,
+				y: 32,
+				width: w - toolbar_w,
+				height: h - 32,
+			});
+			win.contentView.addChildView(addressBar);
+		}
+	});
 };
 
 app.on("window-all-closed", () => {
@@ -74,4 +114,7 @@ function handleSetTitle(event, title) {
 
 app.whenReady().then(() => {
 	createWindow();
+	app.on("activate", () => {
+		if (BrowserWindow.getAllWindows().length === 0) createWindow();
+	});
 });

@@ -43,6 +43,8 @@
         <button class="red" id="red" type="button">&nbsp;</button>
         <input type="image" src="trash.svg" id="trash"></input>
         <div class="spacer"></div>
+        <input type="image" src="square.svg" id="overlay" />
+        <input type="image" src="bookmark.svg" id="bookmark" />
         <input type="image" src="cog.svg" id="devtool"></input>
     </div>
     <script src="toolbar.js"></script>
@@ -62,6 +64,10 @@
         document.querySelector("#devtool").addEventListener('click',(e)=>{
             e.preventDefault();
             window.api.toggleDevTool();
+        })
+        document.querySelector("#overlay").addEventListener('click',(e)=>{
+            e.preventDefault();
+            window.api.toggleOverlay();
         })
     </script>
 </body>
