@@ -13,6 +13,8 @@ const createWindow = () => {
 	const toolbar_w = 32;
 
 	let isOverlay = true;
+	let url = "https://hackwork.jp";
+	//	let url = "https://www.recurrent.jp/instructor/pdf_view/5585__1726563225__0__text_pdf?type=customize";
 
 	const win = new BaseWindow({
 		width: w,
@@ -33,10 +35,9 @@ const createWindow = () => {
 
 	view1.setBounds({ x: 32, y: 0, width: w - toolbar_w, height: h });
 	win.contentView.addChildView(view1);
-	view1.webContents.loadURL("https://hackwork.jp");
-	// view1.webContents.loadURL(
-	// 	"https://www.recurrent.jp/instructor/pdf_view/5585__1726563225__0__text_pdf?type=customize",
-	// );
+	if (url !== "") {
+		view1.webContents.loadURL(url);
+	}
 
 	const view2 = new WebContentsView({
 		webPreferences: {
@@ -67,21 +68,39 @@ const createWindow = () => {
 
 	// win.loadFile('index.html')
 
+	view1.webContents.on("did-navigate", (_event, newUrl) => {
+		url = newUrl;
+		addressBar.webContents.send("setURL", newUrl);
+	});
+	view1.webContents.on("did-navigate-in-page", (_event, newUrl) => {
+		url = newUrl;
+		addressBar.webContents.send("setURL", newUrl);
+	});
+
 	ipcMain.on("toggleDevTool", (_event) => {
-		console.log("dev");
 		view1.webContents.toggleDevTools();
 	});
 	ipcMain.on("setColor", (_event, color) => {
-		console.log("setColor", color);
 		view1.webContents.send("setColor", color);
 	});
 	ipcMain.on("clearAll", (_event) => {
-		console.log("clearAll");
 		view1.webContents.send("clearAll");
+	});
+	ipcMain.on("setURL", (_event, newUrl) => {
+		url = newUrl;
+		view1.webContents.loadURL(newUrl);
+	});
+	ipcMain.on("browserBack", (_event) => {
+		view1.webContents.goBack();
+	});
+	ipcMain.on("browserForward", (_event) => {
+		view1.webContents.goForward();
+	});
+	ipcMain.on("browserReload", (_event) => {
+		view1.webContents.reload();
 	});
 	ipcMain.on("toggleOverlay", (_event) => {
 		isOverlay = !isOverlay;
-		console.log("toggleOverlay");
 		if (isOverlay) {
 			view1.setBounds({
 				x: 32,
@@ -97,6 +116,7 @@ const createWindow = () => {
 				width: w - toolbar_w,
 				height: h - 32,
 			});
+			addressBar.webContents.send("setURL", url);
 			win.contentView.addChildView(addressBar);
 		}
 	});

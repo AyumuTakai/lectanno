@@ -6,13 +6,11 @@ contextBridge.exposeInMainWorld("api", {
 	clearAll: (callback) => ipcRenderer.on("clearAll", (_event) => callback()),
 });
 
-function createScript() {
-	const script = document.createElement("script");
-	// script.innerHTML = "alert('test')";
-	script.src = "http://localhost:8000/test.js";
-	return script;
-}
+const fs = require("node:fs");
+const path = require("node:path");
 
 window.addEventListener("load", () => {
-	document.querySelector("body").appendChild(createScript());
+	const script = document.createElement("script");
+	script.innerHTML = fs.readFileSync(path.join(__dirname, "test.js"), "utf8");
+	document.querySelector("body").appendChild(script);
 });

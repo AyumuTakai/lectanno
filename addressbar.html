@@ -16,16 +16,36 @@
         #address {
             flex-grow: 1;
         }
-        button {
+        button,input[type="image"] {
             width: 32px;
             height: 32px;
         }
     </style>
 </head>
 <body>
-    <button>←</button>
-    <button>→</button>
-    <button>R</button>
+    <!-- <input type="image" src="./bookmark.svg" /> -->
+    <button id="back">←</button>
+    <button id="forward">→</button>
+    <button id="reload">R</button>
     <input type="text" id="address">
+    <script>
+        window.api.onSetURL((url)=>{
+            document.querySelector("#address").value = url;
+        });
+        document.querySelector("#address").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                window.api.setURL(document.querySelector("#address").value);
+            }
+        });
+        document.querySelector("#back").addEventListener("click",()=>{
+            window.api.back();
+        });
+        document.querySelector("#forward").addEventListener("click",()=>{
+            window.api.forward();
+        });
+        document.querySelector("#reload").addEventListener("click",()=>{
+            window.api.reload();
+        });
+    </script>
 </body>
 </html>
