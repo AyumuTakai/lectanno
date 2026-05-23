@@ -1,6 +1,6 @@
 {
   "name": "anotbrowser",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "アノテーション機能付きデスクトップブラウザ",
   "main": "main.js",
   "author": "Ayumu Takai <ayumu.takai@gmail.com>",
@@ -31,13 +31,35 @@
     },
     "mac": {
       "category": "public.app-category.productivity",
-      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }]
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ]
     },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }]
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "linux": {
-      "target": [{ "target": "AppImage", "arch": ["x64"] }]
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     }
   },
   "keywords": [],
