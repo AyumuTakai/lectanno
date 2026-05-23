@@ -70,6 +70,9 @@ function createSVG() {
 		];
 	}
 
+	// 追跡コンテナのサイズ変化でも SVG を再計算する
+	const containerResizeObserver = new ResizeObserver(() => { resize(); syncScroll(); });
+
 	// el の祖先からスクロール可能なコンテナを探して追跡対象に設定する
 	function updateTrackedContainer(el) {
 		if (!el) return;
@@ -80,9 +83,13 @@ function createSVG() {
 			const scrollableX = node.scrollWidth > node.clientWidth && (overflowX === "scroll" || overflowX === "auto");
 			if (scrollableY || scrollableX) {
 				if (trackedContainer !== node) {
-					if (trackedContainer) trackedContainer.removeEventListener("scroll", syncScroll);
+					if (trackedContainer) {
+						trackedContainer.removeEventListener("scroll", syncScroll);
+						containerResizeObserver.unobserve(trackedContainer);
+					}
 					trackedContainer = node;
 					trackedContainer.addEventListener("scroll", syncScroll, { passive: true });
+					containerResizeObserver.observe(trackedContainer);
 					resize();
 				}
 				return;
@@ -92,6 +99,7 @@ function createSVG() {
 		// スクロール可能なコンテナが見つからなければ追跡を解除
 		if (trackedContainer) {
 			trackedContainer.removeEventListener("scroll", syncScroll);
+			containerResizeObserver.unobserve(trackedContainer);
 			trackedContainer = null;
 		}
 	}
