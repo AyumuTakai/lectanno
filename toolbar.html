@@ -1,16 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ToolBar</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-        }
-        html,body {
-            background-color: gray;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background-color: #3a3a3a;
+            width: 32px;
+            overflow: hidden;
         }
         #wrapper {
             display: flex;
@@ -18,56 +16,102 @@
             width: 32px;
             height: 100svh;
         }
-        button,input {
+        button, input[type="image"], input[type="color"] {
             width: 32px;
             height: 32px;
-            background-color: none;
             border: none;
+            cursor: pointer;
         }
-        .spacer {
-            flex-grow: 1;
-            min-width:32px;
-            min-height: 32px;
+        button {
+            background: transparent;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .yellow {
-            background-color: yellow;
-        }
-        .red {
-            background-color: red;
-        }
+        button:hover, input[type="image"]:hover { background-color: rgba(255,255,255,0.2); }
+        button.active { background-color: rgba(255,200,0,0.4); outline: 2px solid orange; }
+        input[type="color"] { padding: 3px; background: transparent; }
+        .spacer { flex-grow: 1; }
     </style>
 </head>
 <body>
     <div id="wrapper">
-        <button class="yellow" id="yellow" type="button">&nbsp;</button>
-        <button class="red" id="red" type="button">&nbsp;</button>
-        <input type="image" src="trash.svg" id="trash"></input>
+        <input type="color" id="colorPicker" value="#ffff00" title="ペンの色">
+        <button id="lineWidth" title="線幅を変更">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+                <line id="widthLine" x1="2" y1="12" x2="22" y2="12" stroke="white" stroke-linecap="round" stroke-width="3"/>
+            </svg>
+        </button>
+        <button id="eraser" title="消しゴム">✕</button>
+        <button id="undo" title="元に戻す">↩</button>
+        <input type="image" src="bookmark.svg" id="bookmark" title="ブックマーク" style="opacity:0.5">
+        <input type="image" src="trash.svg" id="trash" title="全削除">
         <div class="spacer"></div>
-        <input type="image" src="square.svg" id="overlay" />
-        <input type="image" src="cog.svg" id="devtool"></input>
+        <input type="image" src="square.svg" id="overlay" title="アドレスバー">
+        <input type="image" src="cog.svg" id="devtool" title="開発者ツール">
     </div>
-    <script src="toolbar.js"></script>
     <script>
-        document.querySelector("#yellow").addEventListener('click',(e)=>{
-            e.preventDefault();
-            window.api.setColor('yellow');
+        const widths = [4, 10, 20];
+        const widthStrokes = [1.5, 3, 6];
+        let widthIndex = 1;
+        let isEraser = false;
+
+        function updateWidthIndicator() {
+            document.getElementById("widthLine").setAttribute("stroke-width", widthStrokes[widthIndex]);
+        }
+
+        document.getElementById("colorPicker").addEventListener("input", (e) => {
+            if (isEraser) {
+                isEraser = false;
+                document.getElementById("eraser").classList.remove("active");
+                window.api.setEraser(false);
+            }
+            window.api.setColor(e.target.value);
         });
-        document.querySelector("#red").addEventListener('click',(e)=>{
-            e.preventDefault();
-            window.api.setColor('red');
+
+        document.getElementById("lineWidth").addEventListener("click", () => {
+            widthIndex = (widthIndex + 1) % widths.length;
+            updateWidthIndicator();
+            window.api.setLineWidth(widths[widthIndex]);
         });
-        document.querySelector("#trash").addEventListener('click',(e)=>{
+
+        document.getElementById("eraser").addEventListener("click", () => {
+            isEraser = !isEraser;
+            document.getElementById("eraser").classList.toggle("active", isEraser);
+            window.api.setEraser(isEraser);
+        });
+
+        document.getElementById("undo").addEventListener("click", () => {
+            window.api.undo();
+        });
+
+        document.getElementById("bookmark").addEventListener("click", (e) => {
+            e.preventDefault();
+            window.api.toggleBookmark();
+        });
+
+        document.getElementById("trash").addEventListener("click", (e) => {
             e.preventDefault();
             window.api.clearAll();
-        })
-        document.querySelector("#devtool").addEventListener('click',(e)=>{
-            e.preventDefault();
-            window.api.toggleDevTool();
-        })
-        document.querySelector("#overlay").addEventListener('click',(e)=>{
+        });
+
+        document.getElementById("overlay").addEventListener("click", (e) => {
             e.preventDefault();
             window.api.toggleOverlay();
-        })
+        });
+
+        document.getElementById("devtool").addEventListener("click", (e) => {
+            e.preventDefault();
+            window.api.toggleDevTool();
+        });
+
+        window.api.onBookmarkStatus((isBookmarked) => {
+            document.getElementById("bookmark").style.opacity = isBookmarked ? "1" : "0.5";
+        });
+
+        updateWidthIndicator();
     </script>
 </body>
 </html>

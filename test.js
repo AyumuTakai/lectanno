@@ -1,17 +1,39 @@
 let currentColor = "yellow";
+let currentWidth = 10;
+let isEraser = false;
 const allLines = [];
 
-function addLine(svg, x1, y1, x2, y2, color) {
+function distanceToSegment(px, py, x1, y1, x2, y2) {
+	const dx = x2 - x1, dy = y2 - y1;
+	const lenSq = dx * dx + dy * dy;
+	if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+	const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
+	return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+
+function addLine(svg, x1, y1, x2, y2, color, width) {
 	const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
 	line.setAttribute("x1", x1);
 	line.setAttribute("y1", y1);
 	line.setAttribute("x2", x2);
 	line.setAttribute("y2", y2);
 	line.setAttribute("stroke", color);
-	line.setAttribute("stroke-width", 10);
+	line.setAttribute("stroke-width", width);
 	line.setAttribute("stroke-opacity", 0.5);
+	line.setAttribute("stroke-linecap", "round");
 	svg.appendChild(line);
 	return line;
+}
+
+function eraseNearPoint(svg, x, y) {
+	const radius = 20;
+	for (let i = allLines.length - 1; i >= 0; i--) {
+		const l = allLines[i];
+		if (distanceToSegment(x, y, l.x1, l.y1, l.x2, l.y2) < radius) {
+			svg.removeChild(svg.childNodes[i]);
+			allLines.splice(i, 1);
+		}
+	}
 }
 
 function createContainer() {
@@ -48,31 +70,39 @@ function createSVG() {
 
 	svg.addEventListener("mousedown", (event) => {
 		isDragging = true;
-		currentLineData = {
-			x1: event.offsetX,
-			y1: event.offsetY,
-			x2: event.offsetX,
-			y2: event.offsetY,
-			color: currentColor,
-		};
-		currentFigure = addLine(
-			svg,
-			currentLineData.x1,
-			currentLineData.y1,
-			currentLineData.x2,
-			currentLineData.y2,
-			currentColor,
-		);
+		if (!isEraser) {
+			currentLineData = {
+				x1: event.offsetX,
+				y1: event.offsetY,
+				x2: event.offsetX,
+				y2: event.offsetY,
+				color: currentColor,
+				width: currentWidth,
+			};
+			currentFigure = addLine(
+				svg,
+				currentLineData.x1,
+				currentLineData.y1,
+				currentLineData.x2,
+				currentLineData.y2,
+				currentColor,
+				currentWidth,
+			);
+		}
 	});
 
 	svg.addEventListener("mouseup", (event) => {
-		if (isDragging && currentFigure && currentLineData) {
-			currentLineData.x2 = event.offsetX;
-			currentLineData.y2 = event.offsetY;
-			currentFigure.setAttribute("x2", event.offsetX);
-			currentFigure.setAttribute("y2", event.offsetY);
-			allLines.push(currentLineData);
-			window.api.saveAnnotations(location.href, allLines);
+		if (isDragging) {
+			if (!isEraser && currentFigure && currentLineData) {
+				currentLineData.x2 = event.offsetX;
+				currentLineData.y2 = event.offsetY;
+				currentFigure.setAttribute("x2", event.offsetX);
+				currentFigure.setAttribute("y2", event.offsetY);
+				allLines.push(currentLineData);
+				window.api.saveAnnotations(location.href, allLines);
+			} else if (isEraser) {
+				window.api.saveAnnotations(location.href, allLines);
+			}
 		}
 		isDragging = false;
 		currentFigure = null;
@@ -80,9 +110,12 @@ function createSVG() {
 	});
 
 	svg.addEventListener("mousemove", (event) => {
-		if (isDragging && currentFigure) {
+		if (!isDragging) return;
+		if (!isEraser && currentFigure) {
 			currentFigure.setAttribute("x2", event.offsetX);
 			currentFigure.setAttribute("y2", event.offsetY);
+		} else if (isEraser) {
+			eraseNearPoint(svg, event.offsetX, event.offsetY);
 		}
 	});
 
@@ -97,17 +130,25 @@ document.querySelector("body").appendChild(div);
 // 保存済みアノテーションを復元
 window.api.loadAnnotations(location.href).then((savedLines) => {
 	for (const line of savedLines) {
-		addLine(svg, line.x1, line.y1, line.x2, line.y2, line.color);
+		addLine(svg, line.x1, line.y1, line.x2, line.y2, line.color, line.width ?? 10);
 		allLines.push(line);
 	}
 });
 
+window.api.setColor((color) => { currentColor = color; });
+window.api.setLineWidth((width) => { currentWidth = width; });
+window.api.setEraser((active) => {
+	isEraser = active;
+	svg.style.cursor = active ? "cell" : "default";
+});
+window.api.undo(() => {
+	if (allLines.length === 0) return;
+	svg.removeChild(svg.lastChild);
+	allLines.pop();
+	window.api.saveAnnotations(location.href, allLines);
+});
 window.api.clearAll(() => {
 	while (svg.firstChild) svg.removeChild(svg.firstChild);
 	allLines.length = 0;
 	window.api.saveAnnotations(location.href, []);
-});
-
-window.api.setColor((color) => {
-	currentColor = color;
 });

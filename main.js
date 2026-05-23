@@ -69,22 +69,43 @@ const createWindow = () => {
 
 	updateBounds();
 
-	view1.webContents.on("did-navigate", (_event, newUrl) => {
+	view1.webContents.on("page-title-updated", (_event, title) => {
+		win?.setTitle(title);
+	});
+
+	function onNavigate(newUrl) {
 		getData().lastUrl = newUrl;
 		saveData();
 		addressBar.webContents.send("setURL", newUrl);
-	});
-	view1.webContents.on("did-navigate-in-page", (_event, newUrl) => {
-		getData().lastUrl = newUrl;
-		saveData();
-		addressBar.webContents.send("setURL", newUrl);
-	});
+		const isBookmarked = (getData().bookmarks || []).includes(newUrl);
+		view2.webContents.send("bookmarkStatus", isBookmarked);
+	}
+
+	view1.webContents.on("did-navigate", (_event, newUrl) => onNavigate(newUrl));
+	view1.webContents.on("did-navigate-in-page", (_event, newUrl) => onNavigate(newUrl));
 };
 
 // IPC handlers registered once at module level to avoid duplication on macOS re-activate
 ipcMain.on("toggleDevTool", () => view1?.webContents.toggleDevTools());
 ipcMain.on("setColor", (_, color) => view1?.webContents.send("setColor", color));
+ipcMain.on("setLineWidth", (_, width) => view1?.webContents.send("setLineWidth", width));
+ipcMain.on("setEraser", (_, active) => view1?.webContents.send("setEraser", active));
+ipcMain.on("undo", () => view1?.webContents.send("undo"));
 ipcMain.on("clearAll", () => view1?.webContents.send("clearAll"));
+ipcMain.on("toggleBookmark", () => {
+	const data = getData();
+	const url = data.lastUrl;
+	if (!url) return;
+	if (!data.bookmarks) data.bookmarks = [];
+	const idx = data.bookmarks.indexOf(url);
+	if (idx >= 0) {
+		data.bookmarks.splice(idx, 1);
+	} else {
+		data.bookmarks.push(url);
+	}
+	saveData();
+	view2?.webContents.send("bookmarkStatus", idx < 0);
+});
 ipcMain.on("setURL", (_, newUrl) => {
 	getData().lastUrl = newUrl;
 	saveData();

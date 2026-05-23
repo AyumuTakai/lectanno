@@ -5,7 +5,14 @@ const path = require("node:path");
 contextBridge.exposeInMainWorld("api", {
 	setColor: (callback) =>
 		ipcRenderer.on("setColor", (_event, color) => callback(color)),
-	clearAll: (callback) => ipcRenderer.on("clearAll", (_event) => callback()),
+	setLineWidth: (callback) =>
+		ipcRenderer.on("setLineWidth", (_event, width) => callback(width)),
+	setEraser: (callback) =>
+		ipcRenderer.on("setEraser", (_event, active) => callback(active)),
+	undo: (callback) =>
+		ipcRenderer.on("undo", (_event) => callback()),
+	clearAll: (callback) =>
+		ipcRenderer.on("clearAll", (_event) => callback()),
 	saveAnnotations: (url, lines) => ipcRenderer.send("saveAnnotations", url, lines),
 	loadAnnotations: (url) => ipcRenderer.invoke("loadAnnotations", url),
 });
