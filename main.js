@@ -111,6 +111,7 @@ ipcMain.on("toggleDevTool", () => view1?.webContents.toggleDevTools());
 ipcMain.on("setColor", (_, color) => view1?.webContents.send("setColor", color));
 ipcMain.on("setLineWidth", (_, width) => view1?.webContents.send("setLineWidth", width));
 ipcMain.on("setEraser", (_, active) => view1?.webContents.send("setEraser", active));
+ipcMain.on("setInteractMode", (_, active) => view1?.webContents.send("setInteractMode", active));
 ipcMain.on("undo", () => view1?.webContents.send("undo"));
 ipcMain.on("clearAll", () => view1?.webContents.send("clearAll"));
 ipcMain.on("toggleBookmark", () => {

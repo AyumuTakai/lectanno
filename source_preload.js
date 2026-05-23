@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld("api", {
 		ipcRenderer.on("undo", (_event) => callback()),
 	clearAll: (callback) =>
 		ipcRenderer.on("clearAll", (_event) => callback()),
+	setInteractMode: (callback) =>
+		ipcRenderer.on("setInteractMode", (_event, active) => callback(active)),
 	saveAnnotations: (url, lines) => ipcRenderer.send("saveAnnotations", url, lines),
 	loadAnnotations: (url) => ipcRenderer.invoke("loadAnnotations", url),
 });

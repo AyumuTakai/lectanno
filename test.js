@@ -176,6 +176,12 @@ window.api.setEraser((active) => {
 	isEraser = active;
 	svg.style.cursor = active ? "cell" : "default";
 });
+window.api.setInteractMode((active) => {
+	// active=true: SVG を透過してiframe含む全コンテンツを直接操作可能にする
+	// active=false: SVG がイベントを受け取り描画モードに戻る
+	svg.style.pointerEvents = active ? "none" : "all";
+	svg.style.cursor = active ? "" : (isEraser ? "cell" : "default");
+});
 window.api.undo(() => {
 	if (allLines.length === 0) return;
 	svg.removeChild(svg.lastChild);
