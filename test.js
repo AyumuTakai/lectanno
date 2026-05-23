@@ -1,6 +1,7 @@
 let currentColor = "yellow";
 let currentWidth = 10;
 let isEraser = false;
+let drawMode = "line"; // "line" | "free"
 const allLines = [];
 
 function distanceToSegment(px, py, x1, y1, x2, y2) {
@@ -25,11 +26,41 @@ function addLine(svg, x1, y1, x2, y2, color, width) {
 	return line;
 }
 
+// points: [[x,y], ...]
+function addPath(svg, points, color, width) {
+	const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+	path.setAttribute("d", pointsToD(points));
+	path.setAttribute("stroke", color);
+	path.setAttribute("stroke-width", width);
+	path.setAttribute("stroke-opacity", 0.5);
+	path.setAttribute("stroke-linecap", "round");
+	path.setAttribute("stroke-linejoin", "round");
+	path.setAttribute("fill", "none");
+	svg.appendChild(path);
+	return path;
+}
+
+function pointsToD(points) {
+	return points.map((p, i) => `${i === 0 ? "M" : "L"}${p[0]} ${p[1]}`).join(" ");
+}
+
 function eraseNearPoint(svg, x, y) {
 	const radius = 20;
 	for (let i = allLines.length - 1; i >= 0; i--) {
-		const l = allLines[i];
-		if (distanceToSegment(x, y, l.x1, l.y1, l.x2, l.y2) < radius) {
+		const item = allLines[i];
+		let hit = false;
+		if (item.type === "path") {
+			const pts = item.points;
+			for (let j = 0; j < pts.length - 1; j++) {
+				if (distanceToSegment(x, y, pts[j][0], pts[j][1], pts[j + 1][0], pts[j + 1][1]) < radius) {
+					hit = true;
+					break;
+				}
+			}
+		} else {
+			hit = distanceToSegment(x, y, item.x1, item.y1, item.x2, item.y2) < radius;
+		}
+		if (hit) {
 			svg.removeChild(svg.childNodes[i]);
 			allLines.splice(i, 1);
 		}
@@ -53,7 +84,7 @@ function createSVG() {
 	let isDragging = false;
 	let currentFigure = null;
 	let currentLineData = null;
-	// window スクロールに加え、内部スクロールコンテナ (Dropbox 等) にも追従するために追跡する
+	let currentPoints = null; // フリー描画用
 	let trackedContainer = null;
 
 	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -62,7 +93,6 @@ function createSVG() {
 	svg.style.left = "0";
 	svg.style.pointerEvents = "all";
 
-	// window スクロール + 内部コンテナスクロールを合算したオフセットを返す
 	function getOffset() {
 		return [
 			window.scrollX + (trackedContainer ? trackedContainer.scrollLeft : 0),
@@ -70,10 +100,8 @@ function createSVG() {
 		];
 	}
 
-	// 追跡コンテナのサイズ変化でも SVG を再計算する
 	const containerResizeObserver = new ResizeObserver(() => { resize(); syncScroll(); });
 
-	// el の祖先からスクロール可能なコンテナを探して追跡対象に設定する
 	function updateTrackedContainer(el) {
 		if (!el) return;
 		let node = el;
@@ -96,7 +124,6 @@ function createSVG() {
 			}
 			node = node.parentElement;
 		}
-		// スクロール可能なコンテナが見つからなければ追跡を解除
 		if (trackedContainer) {
 			trackedContainer.removeEventListener("scroll", syncScroll);
 			containerResizeObserver.unobserve(trackedContainer);
@@ -149,39 +176,43 @@ function createSVG() {
 	svg.addEventListener("mousedown", (event) => {
 		isDragging = true;
 		if (!isEraser) {
-			// 描画開始時点でカーソル下のスクロールコンテナを確定させる
 			svg.style.pointerEvents = "none";
 			const elUnder = document.elementFromPoint(event.clientX, event.clientY);
 			svg.style.pointerEvents = "all";
 			updateTrackedContainer(elUnder);
 
 			const [ox, oy] = getOffset();
-			currentLineData = {
-				x1: event.clientX + ox,
-				y1: event.clientY + oy,
-				x2: event.clientX + ox,
-				y2: event.clientY + oy,
-				color: currentColor,
-				width: currentWidth,
-			};
-			currentFigure = addLine(
-				svg,
-				currentLineData.x1, currentLineData.y1,
-				currentLineData.x2, currentLineData.y2,
-				currentColor, currentWidth,
-			);
+			const x = event.clientX + ox;
+			const y = event.clientY + oy;
+
+			if (drawMode === "line") {
+				currentLineData = { x1: x, y1: y, x2: x, y2: y, color: currentColor, width: currentWidth };
+				currentFigure = addLine(svg, x, y, x, y, currentColor, currentWidth);
+			} else {
+				currentPoints = [[x, y]];
+				currentFigure = addPath(svg, currentPoints, currentColor, currentWidth);
+			}
 		}
 	});
 
 	svg.addEventListener("mouseup", (event) => {
 		if (isDragging) {
-			if (!isEraser && currentFigure && currentLineData) {
+			if (!isEraser && currentFigure) {
 				const [ox, oy] = getOffset();
-				currentLineData.x2 = event.clientX + ox;
-				currentLineData.y2 = event.clientY + oy;
-				currentFigure.setAttribute("x2", event.clientX + ox);
-				currentFigure.setAttribute("y2", event.clientY + oy);
-				allLines.push(currentLineData);
+				const x = event.clientX + ox;
+				const y = event.clientY + oy;
+
+				if (drawMode === "line" && currentLineData) {
+					currentLineData.x2 = x;
+					currentLineData.y2 = y;
+					currentFigure.setAttribute("x2", x);
+					currentFigure.setAttribute("y2", y);
+					allLines.push(currentLineData);
+				} else if (drawMode === "free" && currentPoints) {
+					currentPoints.push([x, y]);
+					currentFigure.setAttribute("d", pointsToD(currentPoints));
+					allLines.push({ type: "path", points: currentPoints, color: currentColor, width: currentWidth });
+				}
 				window.api.saveAnnotations(location.href, allLines);
 			} else if (isEraser) {
 				window.api.saveAnnotations(location.href, allLines);
@@ -190,16 +221,25 @@ function createSVG() {
 		isDragging = false;
 		currentFigure = null;
 		currentLineData = null;
+		currentPoints = null;
 	});
 
 	svg.addEventListener("mousemove", (event) => {
 		if (!isDragging) return;
 		const [ox, oy] = getOffset();
+		const x = event.clientX + ox;
+		const y = event.clientY + oy;
+
 		if (!isEraser && currentFigure) {
-			currentFigure.setAttribute("x2", event.clientX + ox);
-			currentFigure.setAttribute("y2", event.clientY + oy);
+			if (drawMode === "line") {
+				currentFigure.setAttribute("x2", x);
+				currentFigure.setAttribute("y2", y);
+			} else if (currentPoints) {
+				currentPoints.push([x, y]);
+				currentFigure.setAttribute("d", pointsToD(currentPoints));
+			}
 		} else if (isEraser) {
-			eraseNearPoint(svg, event.clientX + ox, event.clientY + oy);
+			eraseNearPoint(svg, x, y);
 		}
 	});
 
@@ -212,9 +252,13 @@ div.appendChild(svg);
 document.querySelector("body").appendChild(div);
 
 window.api.loadAnnotations(location.href).then((savedLines) => {
-	for (const line of savedLines) {
-		addLine(svg, line.x1, line.y1, line.x2, line.y2, line.color, line.width ?? 10);
-		allLines.push(line);
+	for (const item of savedLines) {
+		if (item.type === "path") {
+			addPath(svg, item.points, item.color, item.width ?? 10);
+		} else {
+			addLine(svg, item.x1, item.y1, item.x2, item.y2, item.color, item.width ?? 10);
+		}
+		allLines.push(item);
 	}
 });
 
@@ -224,6 +268,7 @@ window.api.setEraser((active) => {
 	isEraser = active;
 	svg.style.cursor = active ? "cell" : "default";
 });
+window.api.setDrawMode((mode) => { drawMode = mode; });
 window.api.setInteractMode((active) => {
 	svg.style.pointerEvents = active ? "none" : "all";
 	svg.style.cursor = active ? "" : (isEraser ? "cell" : "default");

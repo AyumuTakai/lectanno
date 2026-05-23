@@ -38,11 +38,18 @@
         #modeToggle { font-size: 18px; }
         #modeToggle.draw-mode  { color: #7cf; outline: 2px solid #7cf; }
         #modeToggle.interact-mode { color: #fc7; outline: 2px solid #fc7; }
+        /* 描画モードボタン */
+        #drawMode.free-mode { background-color: rgba(255,255,255,0.15); outline: 2px solid #aef; }
     </style>
 </head>
 <body>
     <div id="wrapper">
         <button id="modeToggle" class="draw-mode" title="操作モードに切替">✏</button>
+        <button id="drawMode" title="フリー描画に切替">
+            <svg width="20" height="20" viewBox="0 0 20 20" id="drawModeIcon">
+                <line x1="3" y1="17" x2="17" y2="3" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+        </button>
         <input type="color" id="colorPicker" value="#ffff00" title="ペンの色">
         <button id="lineWidth" title="線幅を変更">
             <svg width="24" height="24" viewBox="0 0 24 24">
@@ -63,6 +70,23 @@
         let widthIndex = 1;
         let isEraser = false;
         let isInteractMode = false;
+        let isFreeMode = false;
+
+        document.getElementById("drawMode").addEventListener("click", () => {
+            isFreeMode = !isFreeMode;
+            const btn = document.getElementById("drawMode");
+            const icon = document.getElementById("drawModeIcon");
+            if (isFreeMode) {
+                btn.classList.add("free-mode");
+                btn.title = "直線描画に切替";
+                icon.innerHTML = '<path d="M2 13 Q5 5 8 13 Q11 21 14 13 Q16 8 18 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>';
+            } else {
+                btn.classList.remove("free-mode");
+                btn.title = "フリー描画に切替";
+                icon.innerHTML = '<line x1="3" y1="17" x2="17" y2="3" stroke="white" stroke-width="2.5" stroke-linecap="round"/>';
+            }
+            window.api.setDrawMode(isFreeMode ? "free" : "line");
+        });
 
         document.getElementById("modeToggle").addEventListener("click", () => {
             isInteractMode = !isInteractMode;
