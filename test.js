@@ -1,7 +1,7 @@
 let currentColor = "yellow";
 let currentWidth = 10;
 let isEraser = false;
-const allLines = [];
+const allLines = []; // 座標はドキュメント座標 (pageX/pageY) で保存
 
 function distanceToSegment(px, py, x1, y1, x2, y2) {
 	const dx = x2 - x1, dy = y2 - y1;
@@ -36,21 +36,19 @@ function eraseNearPoint(svg, x, y) {
 	}
 }
 
+// コンテナは position:fixed で画面全体を覆うが pointer-events:none にして
+// スクロールやクリックを下のコンテンツに透過させる。
+// 描画イベントは内部の SVG が pointer-events:all で受け取る。
 function createContainer() {
 	const div = document.createElement("div");
 	div.style.position = "fixed";
-	div.style.height = "100vh";
+	div.style.top = "0";
+	div.style.left = "0";
 	div.style.width = "100vw";
-	div.style.top = 0;
-	div.style.left = 0;
-	div.style.background = "rgba(0,0,0,0.0)";
-	div.style.zIndex = 999;
+	div.style.height = "100vh";
+	div.style.zIndex = "999";
 	div.style.overflow = "hidden";
-	div.addEventListener("wheel", (event) => {
-		// PDF.js ページのみスクロール同期
-		const container = document.querySelector("#viewerContainer");
-		if (container) container.scrollBy(0, event.deltaY);
-	});
+	div.style.pointerEvents = "none";
 	return div;
 }
 
@@ -60,33 +58,70 @@ function createSVG() {
 	let currentLineData = null;
 
 	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-	svg.setAttribute("width", window.innerWidth);
-	svg.setAttribute("height", window.innerHeight);
+	svg.style.position = "absolute";
+	svg.style.top = "0";
+	svg.style.left = "0";
+	svg.style.pointerEvents = "all";
 
-	window.addEventListener("resize", () => {
-		svg.setAttribute("width", window.innerWidth);
-		svg.setAttribute("height", window.innerHeight);
-	});
+	// SVG をドキュメント全体のサイズに合わせる
+	function resize() {
+		const w = Math.max(document.documentElement.scrollWidth, window.innerWidth);
+		const h = Math.max(document.documentElement.scrollHeight, window.innerHeight);
+		svg.setAttribute("width", w);
+		svg.setAttribute("height", h);
+	}
 
+	// スクロール量を打ち消す transform を適用してアノテーションを追従させる
+	function syncScroll() {
+		svg.style.transform = `translate(${-window.scrollX}px, ${-window.scrollY}px)`;
+	}
+
+	resize();
+	syncScroll();
+
+	window.addEventListener("scroll", syncScroll, { passive: true });
+	window.addEventListener("resize", () => { resize(); syncScroll(); });
+	new ResizeObserver(() => { resize(); syncScroll(); }).observe(document.documentElement);
+
+	// ホイールイベントをカーソル下の実際のスクロール要素に転送する
+	svg.addEventListener("wheel", (event) => {
+		svg.style.pointerEvents = "none";
+		const el = document.elementFromPoint(event.clientX, event.clientY);
+		svg.style.pointerEvents = "all";
+
+		// スクロール可能な祖先要素を探して転送
+		let node = el;
+		while (node && node !== document.documentElement) {
+			const { overflowY } = getComputedStyle(node);
+			if (
+				node.scrollHeight > node.clientHeight &&
+				(overflowY === "scroll" || overflowY === "auto")
+			) {
+				node.scrollBy(0, event.deltaY);
+				return;
+			}
+			node = node.parentElement;
+		}
+		window.scrollBy(0, event.deltaY);
+	}, { passive: true });
+
+	// ドキュメント座標 (pageX/pageY) で記録することでスクロール後も位置が正確に保たれる
 	svg.addEventListener("mousedown", (event) => {
 		isDragging = true;
 		if (!isEraser) {
 			currentLineData = {
-				x1: event.offsetX,
-				y1: event.offsetY,
-				x2: event.offsetX,
-				y2: event.offsetY,
+				x1: event.pageX,
+				y1: event.pageY,
+				x2: event.pageX,
+				y2: event.pageY,
 				color: currentColor,
 				width: currentWidth,
 			};
 			currentFigure = addLine(
 				svg,
-				currentLineData.x1,
-				currentLineData.y1,
-				currentLineData.x2,
-				currentLineData.y2,
-				currentColor,
-				currentWidth,
+				currentLineData.x1, currentLineData.y1,
+				currentLineData.x2, currentLineData.y2,
+				currentColor, currentWidth,
 			);
 		}
 	});
@@ -94,10 +129,10 @@ function createSVG() {
 	svg.addEventListener("mouseup", (event) => {
 		if (isDragging) {
 			if (!isEraser && currentFigure && currentLineData) {
-				currentLineData.x2 = event.offsetX;
-				currentLineData.y2 = event.offsetY;
-				currentFigure.setAttribute("x2", event.offsetX);
-				currentFigure.setAttribute("y2", event.offsetY);
+				currentLineData.x2 = event.pageX;
+				currentLineData.y2 = event.pageY;
+				currentFigure.setAttribute("x2", event.pageX);
+				currentFigure.setAttribute("y2", event.pageY);
 				allLines.push(currentLineData);
 				window.api.saveAnnotations(location.href, allLines);
 			} else if (isEraser) {
@@ -112,10 +147,10 @@ function createSVG() {
 	svg.addEventListener("mousemove", (event) => {
 		if (!isDragging) return;
 		if (!isEraser && currentFigure) {
-			currentFigure.setAttribute("x2", event.offsetX);
-			currentFigure.setAttribute("y2", event.offsetY);
+			currentFigure.setAttribute("x2", event.pageX);
+			currentFigure.setAttribute("y2", event.pageY);
 		} else if (isEraser) {
-			eraseNearPoint(svg, event.offsetX, event.offsetY);
+			eraseNearPoint(svg, event.pageX, event.pageY);
 		}
 	});
 
@@ -127,7 +162,7 @@ const div = createContainer();
 div.appendChild(svg);
 document.querySelector("body").appendChild(div);
 
-// 保存済みアノテーションを復元
+// 保存済みアノテーションを復元 (座標はドキュメント座標で保存されているため変換不要)
 window.api.loadAnnotations(location.href).then((savedLines) => {
 	for (const line of savedLines) {
 		addLine(svg, line.x1, line.y1, line.x2, line.y2, line.color, line.width ?? 10);

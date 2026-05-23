@@ -31,6 +31,15 @@ function saveData() {
 	fs.writeFileSync(getDataPath(), JSON.stringify(appData, null, 2), "utf8");
 }
 
+// executeJavaScript で注入することで CSP を迂回する
+const testJsContent = fs.readFileSync(path.join(__dirname, "test.js"), "utf8");
+const injectionScript =
+	"(function(){\n" +
+	"if(window.__annotationInjected)return;\n" +
+	"window.__annotationInjected=true;\n" +
+	testJsContent +
+	"\n})();";
+
 function updateBounds() {
 	if (!win || !view1) return;
 	const [w, h] = win.getContentSize();
@@ -68,6 +77,18 @@ const createWindow = () => {
 	addressBar.webContents.loadFile("addressbar.html");
 
 	updateBounds();
+
+	function injectAnnotation() {
+		view1.webContents.executeJavaScript(injectionScript).catch(() => {});
+	}
+	// did-finish-load: 通常のページ遷移・リロード
+	view1.webContents.on("did-finish-load", injectAnnotation);
+	// did-navigate-in-page: SPA 内ナビゲーション (Google Drive など)
+	view1.webContents.on("did-navigate-in-page", () => {
+		view1.webContents.executeJavaScript("window.__annotationInjected=false;")
+			.then(() => setTimeout(injectAnnotation, 300))
+			.catch(() => {});
+	});
 
 	view1.webContents.on("page-title-updated", (_event, title) => {
 		win?.setTitle(title);
@@ -134,9 +155,6 @@ ipcMain.on("saveAnnotations", (_, pageUrl, lines) => {
 ipcMain.handle("loadAnnotations", (_, pageUrl) => {
 	const data = getData();
 	return (data.annotations || {})[pageUrl] || [];
-});
-ipcMain.handle("getAnnotationScript", () => {
-	return fs.readFileSync(path.join(__dirname, "test.js"), "utf8");
 });
 
 app.on("window-all-closed", () => {
