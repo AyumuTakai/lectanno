@@ -1,6 +1,4 @@
 const { contextBridge, ipcRenderer } = require("electron");
-const fs = require("node:fs");
-const path = require("node:path");
 
 contextBridge.exposeInMainWorld("api", {
 	setColor: (callback) =>
@@ -17,8 +15,10 @@ contextBridge.exposeInMainWorld("api", {
 	loadAnnotations: (url) => ipcRenderer.invoke("loadAnnotations", url),
 });
 
-window.addEventListener("load", () => {
+// サンドボックス環境では node:fs が使えないため IPC 経由でスクリプト内容を取得する
+window.addEventListener("load", async () => {
+	const content = await ipcRenderer.invoke("getAnnotationScript");
 	const script = document.createElement("script");
-	script.innerHTML = fs.readFileSync(path.join(__dirname, "test.js"), "utf8");
+	script.innerHTML = content;
 	document.querySelector("body").appendChild(script);
 });

@@ -135,6 +135,9 @@ ipcMain.handle("loadAnnotations", (_, pageUrl) => {
 	const data = getData();
 	return (data.annotations || {})[pageUrl] || [];
 });
+ipcMain.handle("getAnnotationScript", () => {
+	return fs.readFileSync(path.join(__dirname, "test.js"), "utf8");
+});
 
 app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") app.quit();
