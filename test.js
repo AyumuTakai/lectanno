@@ -269,9 +269,25 @@ window.api.setEraser((active) => {
 	svg.style.cursor = active ? "cell" : "default";
 });
 window.api.setDrawMode((mode) => { drawMode = mode; });
+let isInteractMode = false;
 window.api.setInteractMode((active) => {
+	isInteractMode = active;
 	svg.style.pointerEvents = active ? "none" : "all";
 	svg.style.cursor = active ? "" : (isEraser ? "cell" : "default");
+});
+
+// Ctrl キー押下中は描画を一時解除してコンテンツを直接操作できるようにする
+window.addEventListener("keydown", (e) => {
+	if (e.key === "Control" && !isInteractMode) {
+		svg.style.pointerEvents = "none";
+		svg.style.cursor = "";
+	}
+});
+window.addEventListener("keyup", (e) => {
+	if (e.key === "Control" && !isInteractMode) {
+		svg.style.pointerEvents = "all";
+		svg.style.cursor = isEraser ? "cell" : "default";
+	}
 });
 window.api.undo(() => {
 	if (allLines.length === 0) return;
