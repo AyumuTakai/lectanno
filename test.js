@@ -44,6 +44,41 @@ function pointsToD(points) {
 	return points.map((p, i) => `${i === 0 ? "M" : "L"}${p[0]} ${p[1]}`).join(" ");
 }
 
+// 矢印: <g> に main line + 2本の羽を持つ
+function addArrow(svg, x1, y1, x2, y2, color, width) {
+	const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+	const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+	line.setAttribute("x1", x1); line.setAttribute("y1", y1);
+	line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+	line.setAttribute("stroke", color);
+	line.setAttribute("stroke-width", width);
+	line.setAttribute("stroke-opacity", 0.5);
+	line.setAttribute("stroke-linecap", "round");
+	g.appendChild(line);
+	updateArrowHead(g, x1, y1, x2, y2, color, width);
+	svg.appendChild(g);
+	return g;
+}
+
+function updateArrowHead(g, x1, y1, x2, y2, color, width) {
+	// 既存の羽を削除（最初の line は残す）
+	while (g.childNodes.length > 1) g.removeChild(g.lastChild);
+	const angle = Math.atan2(y2 - y1, x2 - x1);
+	const size  = Math.max(width * 2.5, 14);
+	for (const delta of [Math.PI * 0.75, -Math.PI * 0.75]) {
+		const wing = document.createElementNS("http://www.w3.org/2000/svg", "line");
+		wing.setAttribute("x1", x2);
+		wing.setAttribute("y1", y2);
+		wing.setAttribute("x2", x2 + size * Math.cos(angle + delta));
+		wing.setAttribute("y2", y2 + size * Math.sin(angle + delta));
+		wing.setAttribute("stroke", color);
+		wing.setAttribute("stroke-width", width);
+		wing.setAttribute("stroke-opacity", 0.5);
+		wing.setAttribute("stroke-linecap", "round");
+		g.appendChild(wing);
+	}
+}
+
 function eraseNearPoint(svg, x, y) {
 	const radius = 20;
 	for (let i = allLines.length - 1; i >= 0; i--) {
@@ -58,6 +93,7 @@ function eraseNearPoint(svg, x, y) {
 				}
 			}
 		} else {
+			// line / arrow ともに x1,y1-x2,y2 の線分で判定
 			hit = distanceToSegment(x, y, item.x1, item.y1, item.x2, item.y2) < radius;
 		}
 		if (hit) {
@@ -188,6 +224,9 @@ function createSVG() {
 			if (drawMode === "line") {
 				currentLineData = { x1: x, y1: y, x2: x, y2: y, color: currentColor, width: currentWidth };
 				currentFigure = addLine(svg, x, y, x, y, currentColor, currentWidth);
+			} else if (drawMode === "arrow") {
+				currentLineData = { type: "arrow", x1: x, y1: y, x2: x, y2: y, color: currentColor, width: currentWidth };
+				currentFigure = addArrow(svg, x, y, x, y, currentColor, currentWidth);
 			} else {
 				currentPoints = [[x, y]];
 				currentFigure = addPath(svg, currentPoints, currentColor, currentWidth);
@@ -207,6 +246,13 @@ function createSVG() {
 					currentLineData.y2 = y;
 					currentFigure.setAttribute("x2", x);
 					currentFigure.setAttribute("y2", y);
+					allLines.push(currentLineData);
+				} else if (drawMode === "arrow" && currentLineData) {
+					currentLineData.x2 = x;
+					currentLineData.y2 = y;
+					currentFigure.firstChild.setAttribute("x2", x);
+					currentFigure.firstChild.setAttribute("y2", y);
+					updateArrowHead(currentFigure, currentLineData.x1, currentLineData.y1, x, y, currentColor, currentWidth);
 					allLines.push(currentLineData);
 				} else if (drawMode === "free" && currentPoints) {
 					currentPoints.push([x, y]);
@@ -234,6 +280,10 @@ function createSVG() {
 			if (drawMode === "line") {
 				currentFigure.setAttribute("x2", x);
 				currentFigure.setAttribute("y2", y);
+			} else if (drawMode === "arrow" && currentLineData) {
+				currentFigure.firstChild.setAttribute("x2", x);
+				currentFigure.firstChild.setAttribute("y2", y);
+				updateArrowHead(currentFigure, currentLineData.x1, currentLineData.y1, x, y, currentColor, currentWidth);
 			} else if (currentPoints) {
 				currentPoints.push([x, y]);
 				currentFigure.setAttribute("d", pointsToD(currentPoints));
@@ -279,6 +329,8 @@ window.api.loadAnnotations(location.href).then((savedLines) => {
 	for (const item of savedLines) {
 		if (item.type === "path") {
 			addPath(svg, item.points, item.color, item.width ?? 10);
+		} else if (item.type === "arrow") {
+			addArrow(svg, item.x1, item.y1, item.x2, item.y2, item.color, item.width ?? 10);
 		} else {
 			addLine(svg, item.x1, item.y1, item.x2, item.y2, item.color, item.width ?? 10);
 		}
