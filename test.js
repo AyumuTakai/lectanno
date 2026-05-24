@@ -251,6 +251,30 @@ const div = createContainer();
 div.appendChild(svg);
 document.querySelector("body").appendChild(div);
 
+// ---- レーザーポインター ----
+const laser = document.createElement("div");
+laser.style.cssText = [
+	"position:fixed",
+	"width:22px",
+	"height:22px",
+	"border-radius:50%",
+	"background:radial-gradient(circle, rgba(255,60,60,1) 0%, rgba(255,30,30,0.7) 40%, transparent 70%)",
+	"box-shadow:0 0 10px 4px rgba(255,0,0,0.5)",
+	"pointer-events:none",
+	"display:none",
+	"transform:translate(-50%,-50%)",
+	"z-index:1000",
+].join(";");
+document.body.appendChild(laser);
+
+let isLaserActive = false;
+window.addEventListener("mousemove", (e) => {
+	if (isLaserActive) {
+		laser.style.left = e.clientX + "px";
+		laser.style.top  = e.clientY + "px";
+	}
+});
+
 window.api.loadAnnotations(location.href).then((savedLines) => {
 	for (const item of savedLines) {
 		if (item.type === "path") {
@@ -287,6 +311,27 @@ window.addEventListener("keyup", (e) => {
 	if (e.key === "Control" && !isInteractMode) {
 		svg.style.pointerEvents = "all";
 		svg.style.cursor = isEraser ? "cell" : "default";
+	}
+});
+
+// Alt / Option キー押下中はレーザーポインターを表示し描画を一時解除する
+window.addEventListener("keydown", (e) => {
+	if (e.key === "Alt" && !isInteractMode && !isLaserActive) {
+		e.preventDefault();
+		isLaserActive = true;
+		laser.style.display = "block";
+		svg.style.pointerEvents = "none";
+		svg.style.cursor = "";
+	}
+});
+window.addEventListener("keyup", (e) => {
+	if (e.key === "Alt") {
+		isLaserActive = false;
+		laser.style.display = "none";
+		if (!isInteractMode) {
+			svg.style.pointerEvents = "all";
+			svg.style.cursor = isEraser ? "cell" : "default";
+		}
 	}
 });
 window.api.undo(() => {
