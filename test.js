@@ -79,6 +79,30 @@ function updateArrowHead(g, x1, y1, x2, y2, color, width) {
 	}
 }
 
+// 矩形ハイライト
+function addRect(svg, x1, y1, x2, y2, color, width) {
+	const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+	const rx = Math.min(x1, x2), ry = Math.min(y1, y2);
+	const rw = Math.abs(x2 - x1),  rh = Math.abs(y2 - y1);
+	rect.setAttribute("x", rx);  rect.setAttribute("y", ry);
+	rect.setAttribute("width", rw); rect.setAttribute("height", rh);
+	rect.setAttribute("rx", 3);
+	rect.setAttribute("stroke", color);
+	rect.setAttribute("stroke-width", width * 0.6);
+	rect.setAttribute("stroke-opacity", 0.8);
+	rect.setAttribute("fill", color);
+	rect.setAttribute("fill-opacity", 0.25);
+	svg.appendChild(rect);
+	return rect;
+}
+
+function updateRect(rect, x1, y1, x2, y2) {
+	rect.setAttribute("x", Math.min(x1, x2));
+	rect.setAttribute("y", Math.min(y1, y2));
+	rect.setAttribute("width",  Math.abs(x2 - x1));
+	rect.setAttribute("height", Math.abs(y2 - y1));
+}
+
 function eraseNearPoint(svg, x, y) {
 	const radius = 20;
 	for (let i = allLines.length - 1; i >= 0; i--) {
@@ -227,6 +251,9 @@ function createSVG() {
 			} else if (drawMode === "arrow") {
 				currentLineData = { type: "arrow", x1: x, y1: y, x2: x, y2: y, color: currentColor, width: currentWidth };
 				currentFigure = addArrow(svg, x, y, x, y, currentColor, currentWidth);
+			} else if (drawMode === "rect") {
+				currentLineData = { type: "rect", x1: x, y1: y, x2: x, y2: y, color: currentColor, width: currentWidth };
+				currentFigure = addRect(svg, x, y, x, y, currentColor, currentWidth);
 			} else {
 				currentPoints = [[x, y]];
 				currentFigure = addPath(svg, currentPoints, currentColor, currentWidth);
@@ -253,6 +280,11 @@ function createSVG() {
 					currentFigure.firstChild.setAttribute("x2", x);
 					currentFigure.firstChild.setAttribute("y2", y);
 					updateArrowHead(currentFigure, currentLineData.x1, currentLineData.y1, x, y, currentColor, currentWidth);
+					allLines.push(currentLineData);
+				} else if (drawMode === "rect" && currentLineData) {
+					currentLineData.x2 = x;
+					currentLineData.y2 = y;
+					updateRect(currentFigure, currentLineData.x1, currentLineData.y1, x, y);
 					allLines.push(currentLineData);
 				} else if (drawMode === "free" && currentPoints) {
 					currentPoints.push([x, y]);
@@ -284,6 +316,8 @@ function createSVG() {
 				currentFigure.firstChild.setAttribute("x2", x);
 				currentFigure.firstChild.setAttribute("y2", y);
 				updateArrowHead(currentFigure, currentLineData.x1, currentLineData.y1, x, y, currentColor, currentWidth);
+			} else if (drawMode === "rect" && currentLineData) {
+				updateRect(currentFigure, currentLineData.x1, currentLineData.y1, x, y);
 			} else if (currentPoints) {
 				currentPoints.push([x, y]);
 				currentFigure.setAttribute("d", pointsToD(currentPoints));
@@ -331,6 +365,8 @@ window.api.loadAnnotations(location.href).then((savedLines) => {
 			addPath(svg, item.points, item.color, item.width ?? 10);
 		} else if (item.type === "arrow") {
 			addArrow(svg, item.x1, item.y1, item.x2, item.y2, item.color, item.width ?? 10);
+		} else if (item.type === "rect") {
+			addRect(svg, item.x1, item.y1, item.x2, item.y2, item.color, item.width ?? 10);
 		} else {
 			addLine(svg, item.x1, item.y1, item.x2, item.y2, item.color, item.width ?? 10);
 		}

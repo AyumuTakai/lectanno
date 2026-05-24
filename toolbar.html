@@ -72,16 +72,21 @@
         let isEraser = false;
         let isInteractMode = false;
         // 描画モード: line → arrow → free のサイクル
-        const DRAW_MODES = ["line", "arrow", "free"];
+        const DRAW_MODES = ["line", "arrow", "free", "rect"];
         const DRAW_ICONS = {
             line:  '<line x1="3" y1="17" x2="17" y2="3" stroke="white" stroke-width="2.5" stroke-linecap="round"/>',
             arrow: '<line x1="3" y1="17" x2="17" y2="3" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="17" y1="3" x2="9" y2="5" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="17" y1="3" x2="15" y2="11" stroke="white" stroke-width="2" stroke-linecap="round"/>',
             free:  '<path d="M2 13 Q5 5 8 13 Q11 21 14 13 Q16 8 18 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+            rect:  '<rect x="3" y="5" width="14" height="10" rx="1" stroke="white" stroke-width="2" fill="rgba(255,255,100,0.35)"/>',
         };
         const DRAW_TITLES = {
             line:  "矢印モードへ切替",
             arrow: "フリー描画モードへ切替",
-            free:  "直線モードへ切替",
+            free:  "矩形ハイライトモードへ切替",
+            rect:  "直線モードへ切替",
+        };
+        const DRAW_CLASSES = {
+            line: "", arrow: "arrow-mode", free: "free-mode", rect: "free-mode",
         };
         let drawModeIndex = 0;
 
@@ -93,8 +98,7 @@
             icon.innerHTML = DRAW_ICONS[mode];
             btn.title = DRAW_TITLES[mode];
             btn.classList.remove("arrow-mode", "free-mode");
-            if (mode === "arrow") btn.classList.add("arrow-mode");
-            if (mode === "free")  btn.classList.add("free-mode");
+            if (DRAW_CLASSES[mode]) btn.classList.add(DRAW_CLASSES[mode]);
             window.api.setDrawMode(mode);
         });
 
