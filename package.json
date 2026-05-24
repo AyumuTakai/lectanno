@@ -1,6 +1,6 @@
 {
   "name": "anotbrowser",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "アノテーション機能付きデスクトップブラウザ",
   "main": "main.js",
   "author": "Ayumu Takai <ayumu.takai@gmail.com>",
