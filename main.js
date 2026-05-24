@@ -90,8 +90,11 @@ const createWindow = () => {
 			.catch(() => {});
 	});
 
+	const { version } = require("./package.json");
+	const appTitle = `Lectanno ${version}`;
+	win.setTitle(appTitle);
 	view1.webContents.on("page-title-updated", (_event, title) => {
-		win?.setTitle(title);
+		win?.setTitle(title ? `${appTitle}  —  ${title}` : appTitle);
 	});
 
 	function onNavigate(newUrl) {
