@@ -13,7 +13,7 @@ let isOverlay = true;
 let appData = null;
 
 function getDataPath() {
-	return path.join(app.getPath("userData"), "anotbrowser.json");
+	return path.join(app.getPath("userData"), "lectanno.json");
 }
 
 function getData() {

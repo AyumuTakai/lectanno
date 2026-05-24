@@ -1,7 +1,7 @@
 {
-  "name": "anotbrowser",
+  "name": "lectanno",
   "version": "1.0.6",
-  "description": "アノテーション機能付きデスクトップブラウザ",
+  "description": "講義・研修向けアノテーション機能付きデスクトップブラウザ",
   "main": "main.js",
   "author": "Ayumu Takai <ayumu.takai@gmail.com>",
   "license": "ISC",
@@ -13,8 +13,8 @@
     "dist:linux": "node scripts/build.js linux"
   },
   "build": {
-    "appId": "jp.ayumu.anotbrowser",
-    "productName": "AnotBrowser",
+    "appId": "jp.ayumu.lectanno",
+    "productName": "Lectanno",
     "copyright": "Copyright © 2025 Ayumu Takai",
     "icon": "build/icon.png",
     "files": [
