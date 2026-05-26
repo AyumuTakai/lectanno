@@ -21,7 +21,7 @@ if (process.env.CI) {
 }
 
 const target = process.argv[2];
-const config = {};
+const config = { publish: "never" }; // publish は GitHub Actions の release ジョブで行う
 if (target === "mac")   config.mac   = [];
 if (target === "win")   config.win   = [];
 if (target === "linux") config.linux = [];
