@@ -8,13 +8,17 @@ const { build } = require("electron-builder");
 const fs = require("node:fs");
 const path = require("node:path");
 
-// package.json のリビジョン (patch) をインクリメント
+// ローカルビルドのみ patch をインクリメント (CI では package.json を変更しない)
 const pkgPath = path.join(__dirname, "..", "package.json");
 const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-const [major, minor, patch] = pkg.version.split(".").map(Number);
-pkg.version = `${major}.${minor}.${patch + 1}`;
-fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
-console.log(`version: ${major}.${minor}.${patch} → ${pkg.version}`);
+if (process.env.CI) {
+	console.log(`version: ${pkg.version} (CI — increment skipped)`);
+} else {
+	const [major, minor, patch] = pkg.version.split(".").map(Number);
+	pkg.version = `${major}.${minor}.${patch + 1}`;
+	fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n", "utf8");
+	console.log(`version: ${major}.${minor}.${patch} → ${pkg.version}`);
+}
 
 const target = process.argv[2];
 const config = {};
