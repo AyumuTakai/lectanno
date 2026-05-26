@@ -1,6 +1,6 @@
 {
   "name": "lectanno",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "講義・研修向けアノテーション機能付きデスクトップブラウザ",
   "main": "main.js",
   "author": "Ayumu Takai <ayumu.takai@gmail.com>",
